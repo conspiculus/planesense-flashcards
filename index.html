@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PC-12 NGX Flashcards - PlaneSense Cobalt</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, #0a1628 0%, #1a2d4a 50%, #0d1f3c 100%);
+    min-height: 100vh;
+    color: #e8edf3;
+    overflow-x: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo svg { width: 32px; height: 32px; }
+
+  .logo-text {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .logo-text span { color: #4da6ff; }
+
+  .progress-bar-container {
+    flex: 1;
+    max-width: 300px;
+    margin: 0 24px;
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #0077cc, #4da6ff);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .counter {
+    font-size: 14px;
+    color: #8899aa;
+    min-width: 80px;
+    text-align: right;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 24px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn, .action-btn {
+    padding: 6px 16px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    background: rgba(255,255,255,0.06);
+    color: #b0c0d0;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .filter-btn:hover, .action-btn:hover {
+    background: rgba(77,166,255,0.15);
+    border-color: rgba(77,166,255,0.4);
+    color: #fff;
+  }
+
+  .filter-btn.active {
+    background: rgba(77,166,255,0.2);
+    border-color: #4da6ff;
+    color: #4da6ff;
+  }
+
+  .action-btn {
+    background: rgba(77,166,255,0.1);
+    border-color: rgba(77,166,255,0.3);
+    color: #4da6ff;
+  }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    min-height: calc(100vh - 160px);
+  }
+
+  .card-scene {
+    width: 100%;
+    max-width: 700px;
+    height: 420px;
+    perspective: 1200px;
+    cursor: pointer;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+  }
+
+  .card.flipped { transform: rotateY(180deg); }
+
+  .card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .card-front {
+    background: linear-gradient(170deg, #ffffff 0%, #f0f4f8 100%);
+    color: #1a2d4a;
+  }
+
+  .card-back {
+    background: linear-gradient(170deg, #ffffff 0%, #f0f4f8 100%);
+    color: #1a2d4a;
+    transform: rotateY(180deg);
+  }
+
+  .card-header {
+    padding: 16px 24px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid #0077cc;
+  }
+
+  .card-category {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a2d4a;
+  }
+
+  .card-header.memory .card-category { color: #c0392b; }
+  .card-header.memory { border-bottom-color: #c0392b; }
+
+  .card-id {
+    font-size: 13px;
+    font-weight: 600;
+    color: #8899aa;
+  }
+
+  .card-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 32px;
+    text-align: center;
+  }
+
+  .card-front .card-body {
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .card-back .card-body {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .card-back .card-body ul {
+    list-style: none;
+    text-align: left;
+  }
+
+  .card-back .card-body ul li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 8px;
+  }
+
+  .card-back .card-body ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0077cc;
+  }
+
+  .card-header.memory + .card-body ul li::before {
+    background: #c0392b;
+  }
+
+  .card-footer {
+    padding: 10px 24px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-footer .wave {
+    width: 100%;
+    height: 50px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+
+  .card-footer-inner {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 4px;
+  }
+
+  .card-footer-inner .rev {
+    font-size: 11px;
+    color: #8899aa;
+  }
+
+  .card-footer-inner .hint {
+    font-size: 12px;
+    color: #aab5c0;
+    font-style: italic;
+  }
+
+  .wave-bg {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    border-radius: 0 0 16px 16px;
+    overflow: hidden;
+  }
+
+  .wave-bg svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .nav-buttons {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .nav-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #b0c0d0;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .nav-btn:hover {
+    background: rgba(77,166,255,0.15);
+    border-color: rgba(77,166,255,0.4);
+    color: #fff;
+  }
+
+  .nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .keyboard-hint {
+    text-align: center;
+    font-size: 12px;
+    color: #556677;
+    margin-top: 8px;
+  }
+
+  .keyboard-hint kbd {
+    padding: 2px 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    font-family: inherit;
+    font-size: 11px;
+  }
+
+  @media (max-width: 768px) {
+    .card-scene { height: 360px; }
+    .card-front .card-body { font-size: 22px; }
+    .card-back .card-body { font-size: 18px; }
+    header { flex-wrap: wrap; gap: 8px; }
+    .progress-bar-container { order: 3; max-width: 100%; margin: 4px 0 0; }
+  }
+
+  @media (max-width: 480px) {
+    .card-scene { height: 320px; }
+    .card-front .card-body { font-size: 18px; padding: 16px 20px; }
+    .card-back .card-body { font-size: 15px; padding: 16px 20px; }
+    .controls { gap: 6px; }
+    .filter-btn, .action-btn { padding: 5px 12px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 32 32" fill="none">
+      <circle cx="16" cy="16" r="14" stroke="#4da6ff" stroke-width="2" fill="none"/>
+      <path d="M8 18 Q16 6 24 18" stroke="#4da6ff" stroke-width="2" fill="none"/>
+      <circle cx="16" cy="14" r="3" fill="#4da6ff"/>
+    </svg>
+    <div class="logo-text">PlaneSense <span>Cobalt</span></div>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progressBar" style="width:0%"></div>
+  </div>
+  <div class="counter" id="counter">1 / 1</div>
+</header>
+
+<div class="controls">
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="limitations">NGX Limitations</button>
+  <button class="filter-btn" data-filter="memory">Memory Items</button>
+  <button class="action-btn" id="shuffleBtn">Shuffle</button>
+</div>
+
+<div class="main">
+  <div class="card-scene" id="cardScene">
+    <div class="card" id="card">
+      <div class="card-face card-front" id="cardFront">
+        <div class="card-header" id="frontHeader">
+          <div class="card-category" id="frontCategory">NGX Limitations</div>
+          <div class="card-id" id="frontId">MI-01A</div>
+        </div>
+        <div class="card-body" id="frontBody">Loading...</div>
+        <div class="wave-bg">
+          <svg viewBox="0 0 700 60" preserveAspectRatio="none">
+            <path d="M0,30 Q100,10 200,25 T400,20 T600,30 T700,15 L700,60 L0,60 Z" fill="rgba(77,166,255,0.08)"/>
+            <path d="M0,35 Q150,15 300,30 T500,25 T700,35 L700,60 L0,60 Z" fill="rgba(0,119,204,0.12)"/>
+            <path d="M0,42 Q120,28 250,38 T500,32 T700,42 L700,60 L0,60 Z" fill="rgba(0,90,160,0.2)"/>
+          </svg>
+        </div>
+      </div>
+      <div class="card-face card-back" id="cardBack">
+        <div class="card-header" id="backHeader">
+          <div class="card-category" id="backCategory">NGX Limitations</div>
+          <div class="card-id" id="backId">MI-01B</div>
+        </div>
+        <div class="card-body" id="backBody">Loading...</div>
+        <div class="wave-bg">
+          <svg viewBox="0 0 700 60" preserveAspectRatio="none">
+            <path d="M0,30 Q100,10 200,25 T400,20 T600,30 T700,15 L700,60 L0,60 Z" fill="rgba(77,166,255,0.08)"/>
+            <path d="M0,35 Q150,15 300,30 T500,25 T700,35 L700,60 L0,60 Z" fill="rgba(0,119,204,0.12)"/>
+            <path d="M0,42 Q120,28 250,38 T500,32 T700,42 L700,60 L0,60 Z" fill="rgba(0,90,160,0.2)"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-buttons">
+    <button class="nav-btn" id="prevBtn" title="Previous">&larr;</button>
+    <button class="nav-btn" id="nextBtn" title="Next">&rarr;</button>
+  </div>
+
+  <div class="keyboard-hint">
+    <kbd>Space</kbd> or click to flip &nbsp;&middot;&nbsp;
+    <kbd>&larr;</kbd> <kbd>&rarr;</kbd> to navigate
+  </div>
+</div>
+
+<script>
+const cards = [
+  // NGX Limitations
+  { cat: "limitations", label: "NGX Limitations", id: "MI-01", q: "Maximum Ramp Weight", a: "10,495 lbs" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-02", q: "Maximum Takeoff Weight", a: "10,450 lbs" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-03", q: "Maximum Landing Weight", a: "9,921 lbs" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-04", q: "Maximum Zero Fuel Weight", a: "9,039 lbs" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-05", q: "Baggage Area Limit", a: "400 lbs" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-06", q: "Maximum Operating Altitude", a: "30,000 feet" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-07", q: "Minimum OAT", a: "-55\u00b0 C" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-08", q: "Maximum OAT", a: "50\u00b0 C" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-09", q: "Minimum De-Ice Boot\nTemperature", a: "-40\u00b0 C" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-10", q: "Maximum De-Ice Boot\nTemperature", a: "40\u00b0 C" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-11", q: "Vmo", a: "240" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-12", q: "Mmo", a: "M 0.49" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-13", q: "Vo", a: "123 \u2013 166" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-14", q: "Vfe (Flaps 15)", a: "165" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-15", q: "Vfe (Flaps 30 & 40)", a: "130" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-16", q: "Vlo", a: "180" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-17", q: "Vle", a: "240" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-18", q: "Vlo (EMER)", a: "120" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-19", q: "Engine", a: "Pratt & Whitney PT6E-67XP" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-20", q: "Oil Type", a: "Eastman Turbo Oil 2380" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-21", q: "Engine Starter Limitations", a: ["1st Attempt: 60 seconds OFF", "2nd Attempt: 60 seconds OFF", "3rd Attempt: 30 Minutes OFF"] },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-22", q: "Minimum Voltage to Start", a: "24 Volts" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-23", q: "ITT Starting Limitations", a: ["850\u00b0 \u2013 900\u00b0: 20 Seconds", "900\u00b0 \u2013 1000\u00b0: 5 Seconds", "1000\u00b0: Hot Start"] },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-24", q: "Engine Takeoff Limitations", a: ["Limited to 5 Minutes", "Torque: 44.84 psi", "ITT: 850\u00b0"] },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-25", q: "Engine Climb Limitations", a: ["Torque: 44.84 psi", "ITT: 825\u00b0"] },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-26", q: "Transient Torque", a: "61 psi (20 seconds)" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-27", q: "Total Fuel Capacity", a: "406.8 Gallons" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-28", q: "Total Usable Fuel", a: "402 Gallons" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-29", q: "Propeller Limitations", a: ["Forward: 1700 RPM \u00b1 30", "Reverse: 1650 RPM", "350\u2013900 stabilized RPM on the ground is not permitted"] },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-30", q: "Crosswind Limitations", a: ["Flaps 0: 30 kts", "Flaps 15: 25 kts", "Flaps 30: 20 kts", "Flaps 40: 15 kts"] },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-31", q: "Generator Limitations", a: ["28 Volts", "300 Amps (450 for 2 minutes in an hour)"] },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-32", q: "Flap Cycle Limitations", a: ["-55\u00b0 to 25\u00b0 C: 10 Cycles per Hour", "25\u00b0 \u2013 50\u00b0 C: 8 Cycles per Hour"] },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-33", q: "Icing Limitations", a: "No flight in FZRA, FZFG, or FZDZ" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-34", q: "Maximum Cabin Differential", a: ["5.75 psi", "0.7 psi for landing"] },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-35", q: "Brake Limitations", a: ["45 Minute Cooling Required when:", "Rejected TO within 20 kts of Vr with heavy braking", "0 Flap, full stop landing with heavy braking"] },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-36", q: "Fuel Imbalance", a: "3 Segments for Takeoff" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-37", q: "Vy (Sea Level)", a: "130" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-38", q: "Holding (Icing Conditions)", a: "145 \u2013 175" },
+  { cat: "limitations", label: "NGX Limitations", id: "MI-39", q: "Flaps Icing Limitations", a: ["Operational De-Ice Boots\u2026 15", "INOP De-Ice Boots\u2026 0", "Following GA or Balked Landing\u2026 Do not retract from 15"] },
+
+  // NG & NGX Memory Items
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-40", q: "Cockpit/Cabin Fire,\nSmoke, or Fumes", a: "Oxygen Mask\u2026. ON" },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-41", q: "Runaway Trim", a: "Trim Interrupt Switch\u2026. Interrupt" },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-42", q: "Rejected Takeoff", a: ["PCL\u2026. IDLE", "Reverse\u2026. As Required", "Braking\u2026. As Required"] },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-43", q: "Engine Failure\nBefore Rotation", a: ["PCL\u2026. Idle", "Brakes\u2026. As required", "(If overrun is imminent)", "NGX: Engine Switch \u2013 OFF", "Fuel Emergency Shutoff\u2026. Press latch down and pull lever up", "Master Power Switch\u2026. EMERGENCY OFF"] },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-44", q: "Inadvertent Shaker", a: ["AOA\u2026. Decrease", "IAS\u2026. Increase"] },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-45", q: "Low Level Wind Shear", a: ["PCL\u2026. Full Power", "Flaps\u2026. \u226430 Degrees", "Pitch\u2026. DSB Centered"] },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-46", q: "YD Hold Nose\nLeft/Right", a: ["Airplane control wheel and rudder pedals\u2026 Grasp and position feet to regain control", "Autopilot Disengage switch\u2026 Press to disengage", "Aircraft\u2026 Retrim manually as necessary", "If no AFCS CAS Messages: Attempt to reengage autopilot once"] },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-47", q: "AP Hold LH (RH) Wing Dn /\nAP Hold Nose Up (Dn)", a: ["Airplane control wheel and rudder pedals\u2026 Grasp and position feet to regain control", "Autopilot Disengage switch\u2026 Press to disengage", "Aircraft\u2026 Retrim manually as necessary", "If no AFCS CAS Messages: Attempt to reengage autopilot once"] },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-48", q: "Engine Failure After Rotation:\nLanding Gear UP", a: ["Landing Gear\u2026 Down when runway assured, otherwise keep UP", "Flaps\u2026 As Required (40\u00b0 if off field)", "Speed\u2026 Final approach speed, not below DSB", "PCL\u2026 Idle", "NGX: Engine Switch\u2026 OFF", "Fuel Emergency Shutoff\u2026 Press latch down and pull lever up", "Master Power Switch\u2026 EMERGENCY OFF (After touchdown)"] },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-49", q: "Engine Failure After Rotation:\nLanding Gear DOWN", a: ["Aircraft\u2026 Land straight ahead, turning only to avoid obstructions (Max 30\u00b0 bank)", "Flaps\u2026 40\u00b0", "Speed\u2026 Final approach speed, not below DSB", "PCL\u2026 Idle", "NGX: Engine Switch\u2026 OFF", "Fuel Emergency Shutoff\u2026 Press latch down and pull lever up", "Master Power Switch\u2026 EMERGENCY OFF (After touchdown)"] },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-50", q: "Engine Failure in Flight", a: ["Autopilot\u2026 Set Best Glide Speed and HDG/T or Nav Mode", "PCL\u2026 Idle", "NGX: Engine Switch\u2026 OFF", "Aircraft\u2026 Proceed to nearest airfield or landing site avoiding high terrain"] },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-51", q: "Engine Fire\non the Ground", a: ["PCL\u2026 Idle", "NGX: Engine Switch \u2013 OFF", "ACS Emer Shutoff\u2026 Pull", "Fuel Emer Shutoff\u2026 Press latch down and pull lever", "Radio\u2026 Emergency call", "Master Power Switch\u2026 EMERGENCY OFF"] },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-52", q: "Partial Power Loss\n(NG Only)", a: ["PCL\u2026 Idle", "MOR Lever\u2026 Pull upwards and move slowly forward", "If engine falls below 50% NG:", "Starter\u2026 Push momentarily"] },
+  { cat: "memory", label: "NG & NGX Memory Items", id: "MI-53", q: "TCAS Resolution Advisory\n(NGX Only)", a: ["Autopilot\u2026 Use yoke quick disconnect if AP engaged", "Aircraft Attitude\u2026 Comply with RA commands on PFD", "ATC\u2026 Inform of TCAS RA", "When clear of conflict:", "Aircraft\u2026 Return to previously assigned altitude and advise ATC"] },
+];
+
+let filtered = [...cards];
+let currentIndex = 0;
+let isFlipped = false;
+
+const cardEl = document.getElementById('card');
+const cardScene = document.getElementById('cardScene');
+const frontCategory = document.getElementById('frontCategory');
+const frontId = document.getElementById('frontId');
+const frontBody = document.getElementById('frontBody');
+const frontHeader = document.getElementById('frontHeader');
+const backCategory = document.getElementById('backCategory');
+const backId = document.getElementById('backId');
+const backBody = document.getElementById('backBody');
+const backHeader = document.getElementById('backHeader');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const counterEl = document.getElementById('counter');
+const progressBar = document.getElementById('progressBar');
+
+function renderCard() {
+  if (filtered.length === 0) {
+    frontBody.textContent = "No cards in this category";
+    backBody.textContent = "";
+    counterEl.textContent = "0 / 0";
+    progressBar.style.width = "0%";
+    return;
+  }
+
+  const c = filtered[currentIndex];
+  const isMemory = c.cat === 'memory';
+
+  frontCategory.textContent = c.label;
+  frontId.textContent = c.id + 'A';
+  frontBody.innerHTML = c.q.replace(/\n/g, '<br>');
+  frontHeader.className = 'card-header' + (isMemory ? ' memory' : '');
+
+  backCategory.textContent = c.label;
+  backId.textContent = c.id + 'B';
+  backHeader.className = 'card-header' + (isMemory ? ' memory' : '');
+
+  if (Array.isArray(c.a)) {
+    const fontSize = c.a.length > 5 ? 16 : c.a.length > 3 ? 19 : 22;
+    backBody.innerHTML = `<ul style="font-size:${fontSize}px">` +
+      c.a.map(item => `<li>${item}</li>`).join('') + '</ul>';
+  } else {
+    backBody.innerHTML = c.a;
+  }
+
+  if (isMemory) {
+    frontBody.style.color = '#c0392b';
+    backBody.style.color = '#c0392b';
+  } else {
+    frontBody.style.color = '#1a2d4a';
+    backBody.style.color = '#1a2d4a';
+  }
+
+  counterEl.textContent = `${currentIndex + 1} / ${filtered.length}`;
+  progressBar.style.width = ((currentIndex + 1) / filtered.length * 100) + '%';
+
+  // Reset flip instantly (no animation)
+  if (isFlipped) {
+    cardEl.style.transition = 'none';
+    cardEl.classList.remove('flipped');
+    // Force reflow so the transition:none takes effect before we restore it
+    cardEl.offsetHeight;
+    cardEl.style.transition = '';
+    isFlipped = false;
+  }
+}
+
+function flipCard() {
+  if (filtered.length === 0) return;
+  isFlipped = !isFlipped;
+  cardEl.classList.toggle('flipped');
+}
+
+function nextCard() {
+  if (filtered.length === 0) return;
+  currentIndex = (currentIndex + 1) % filtered.length;
+  renderCard();
+}
+
+function prevCard() {
+  if (filtered.length === 0) return;
+  currentIndex = (currentIndex - 1 + filtered.length) % filtered.length;
+  renderCard();
+}
+
+function setFilter(filter) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+
+  if (filter === 'all') filtered = [...cards];
+  else filtered = cards.filter(c => c.cat === filter);
+
+  currentIndex = 0;
+  renderCard();
+}
+
+function shuffle() {
+  for (let i = filtered.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+  }
+  currentIndex = 0;
+  renderCard();
+}
+
+// Event listeners
+cardScene.addEventListener('click', flipCard);
+prevBtn.addEventListener('click', prevCard);
+nextBtn.addEventListener('click', nextCard);
+document.getElementById('shuffleBtn').addEventListener('click', shuffle);
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => setFilter(btn.dataset.filter));
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
+  else if (e.key === 'ArrowRight') nextCard();
+  else if (e.key === 'ArrowLeft') prevCard();
+});
+
+// Touch swipe support
+let touchStartX = 0;
+cardScene.addEventListener('touchstart', (e) => {
+  touchStartX = e.changedTouches[0].screenX;
+}, { passive: true });
+
+cardScene.addEventListener('touchend', (e) => {
+  const diff = e.changedTouches[0].screenX - touchStartX;
+  if (Math.abs(diff) > 50) {
+    if (diff < 0) nextCard();
+    else prevCard();
+    e.preventDefault();
+  }
+});
+
+// Init
+renderCard();
+</script>
+</body>
+</html>
