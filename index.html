@@ -645,12 +645,12 @@ function updateFlaggedFilterBtn() {
     flagFilterBtn.dataset.filter = 'flagged';
     flagFilterBtn.textContent = 'Flagged';
     controls.insertBefore(flagFilterBtn, controls.firstChild);
-    flagFilterBtn.addEventListener('click', () => setFilter('flagged'));
   } else if (flaggedIds.size === 0 && flagFilterBtn) {
-    if (flagFilterBtn.classList.contains('active')) {
+    const wasActive = flagFilterBtn.classList.contains('active');
+    flagFilterBtn.remove();
+    if (wasActive) {
       setFilter('all');
     }
-    flagFilterBtn.remove();
   }
 }
 
@@ -670,8 +670,9 @@ nextBtn.addEventListener('click', nextCard);
 flagBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFlag(); });
 document.getElementById('shuffleBtn').addEventListener('click', shuffle);
 
-document.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => setFilter(btn.dataset.filter));
+document.querySelector('.controls').addEventListener('click', (e) => {
+  const btn = e.target.closest('.filter-btn');
+  if (btn) setFilter(btn.dataset.filter);
 });
 
 document.addEventListener('keydown', (e) => {
