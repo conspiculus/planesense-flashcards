@@ -308,6 +308,44 @@
     cursor: not-allowed;
   }
 
+  .flag-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #b0c0d0;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .flag-btn:hover {
+    background: rgba(255,170,0,0.15);
+    border-color: rgba(255,170,0,0.4);
+    color: #ffaa00;
+  }
+
+  .flag-btn.flagged {
+    background: rgba(255,170,0,0.2);
+    border-color: #ffaa00;
+    color: #ffaa00;
+  }
+
+  .filter-btn[data-filter="flagged"] {
+    border-color: rgba(255,170,0,0.4);
+    color: #ffaa00;
+  }
+
+  .filter-btn[data-filter="flagged"].active {
+    background: rgba(255,170,0,0.2);
+    border-color: #ffaa00;
+    color: #ffaa00;
+  }
+
   .keyboard-hint {
     text-align: center;
     font-size: 12px;
@@ -395,6 +433,7 @@
   <div class="nav-buttons">
     <button class="nav-btn" id="prevBtn" title="Previous">&larr;</button>
     <button class="nav-btn" id="nextBtn" title="Next">&rarr;</button>
+    <button class="flag-btn" id="flagBtn" title="Flag this card">&#9873;</button>
   </div>
 
   <div class="keyboard-hint">
@@ -466,6 +505,7 @@ const cards = [
 let filtered = [...cards];
 let currentIndex = 0;
 let isFlipped = false;
+const flaggedIds = new Set();
 
 const cardEl = document.getElementById('card');
 const cardScene = document.getElementById('cardScene');
@@ -479,6 +519,7 @@ const backBody = document.getElementById('backBody');
 const backHeader = document.getElementById('backHeader');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
+const flagBtn = document.getElementById('flagBtn');
 const counterEl = document.getElementById('counter');
 const progressBar = document.getElementById('progressBar');
 
@@ -522,6 +563,8 @@ function renderCard() {
   counterEl.textContent = `${currentIndex + 1} / ${filtered.length}`;
   progressBar.style.width = ((currentIndex + 1) / filtered.length * 100) + '%';
 
+  updateFlagButton();
+
   // Reset flip instantly (no animation)
   if (isFlipped) {
     cardEl.style.transition = 'none';
@@ -556,10 +599,59 @@ function setFilter(filter) {
   document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
 
   if (filter === 'all') filtered = [...cards];
+  else if (filter === 'flagged') filtered = cards.filter(c => flaggedIds.has(c.id));
   else filtered = cards.filter(c => c.cat === filter);
 
   currentIndex = 0;
   renderCard();
+}
+
+function toggleFlag() {
+  if (filtered.length === 0) return;
+  const c = filtered[currentIndex];
+  if (flaggedIds.has(c.id)) {
+    flaggedIds.delete(c.id);
+  } else {
+    flaggedIds.add(c.id);
+  }
+  updateFlagButton();
+  updateFlaggedFilterBtn();
+
+  // If viewing flagged filter and we just unflagged, update the filtered list
+  const activeFilter = document.querySelector('.filter-btn.active');
+  if (activeFilter && activeFilter.dataset.filter === 'flagged') {
+    filtered = cards.filter(c => flaggedIds.has(c.id));
+    if (currentIndex >= filtered.length) currentIndex = Math.max(0, filtered.length - 1);
+    renderCard();
+  }
+}
+
+function updateFlagButton() {
+  if (filtered.length === 0) {
+    flagBtn.classList.remove('flagged');
+    return;
+  }
+  const c = filtered[currentIndex];
+  flagBtn.classList.toggle('flagged', flaggedIds.has(c.id));
+}
+
+function updateFlaggedFilterBtn() {
+  const controls = document.querySelector('.controls');
+  let flagFilterBtn = document.querySelector('[data-filter="flagged"]');
+
+  if (flaggedIds.size > 0 && !flagFilterBtn) {
+    flagFilterBtn = document.createElement('button');
+    flagFilterBtn.className = 'filter-btn';
+    flagFilterBtn.dataset.filter = 'flagged';
+    flagFilterBtn.textContent = 'Flagged';
+    controls.insertBefore(flagFilterBtn, controls.firstChild);
+    flagFilterBtn.addEventListener('click', () => setFilter('flagged'));
+  } else if (flaggedIds.size === 0 && flagFilterBtn) {
+    if (flagFilterBtn.classList.contains('active')) {
+      setFilter('all');
+    }
+    flagFilterBtn.remove();
+  }
 }
 
 function shuffle() {
@@ -575,6 +667,7 @@ function shuffle() {
 cardScene.addEventListener('click', flipCard);
 prevBtn.addEventListener('click', prevCard);
 nextBtn.addEventListener('click', nextCard);
+flagBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFlag(); });
 document.getElementById('shuffleBtn').addEventListener('click', shuffle);
 
 document.querySelectorAll('.filter-btn').forEach(btn => {
